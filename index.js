@@ -59,6 +59,43 @@ async function run() {
 
       res.send(result);
     });
+    // searching --------------------
+    app.get("/api/rooms", async (req, res) => {
+      try {
+        const { search, amenities, minRate, maxRate, floor } = req.query;
+
+        let query = {};
+
+        if (search) {
+          query.roomName = {
+            $regex: search,
+            $options: "i",
+          };
+        }
+
+        if (amenities) {
+          const amenitiesArray = amenities.split(",").map((a) => a.trim());
+          query.amenities = { $in: amenitiesArray };
+        }
+
+        if (minRate || maxRate) {
+          query.hourlyRate = {};
+          if (minRate) query.hourlyRate.$gte = Number(minRate);
+          if (maxRate) query.hourlyRate.$lte = Number(maxRate);
+        }
+
+        if (floor) {
+          query.floor = floor;
+        }
+
+        const rooms = await roomCollection.find(query).toArray();
+        res.json(rooms);
+      } catch (err) {
+        console.error("Error fetching rooms:", err);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    });
+
     // post room data--
     app.post("/rooms", async (req, res) => {
       const room = req.body;
