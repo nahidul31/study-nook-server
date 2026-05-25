@@ -145,6 +145,8 @@ app.get("/", (req, res) => {
   res.send("My studyNook server is running");
 });
 
-app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`);
-});
+// app.listen(port, () => {
+//   console.log(`Example app listening on port ${port}`);
+// });
+
+module.exports = app;
