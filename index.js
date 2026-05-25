@@ -26,13 +26,17 @@ async function run() {
     await client.connect();
     const db = client.db("StudyNookDb");
     const roomCollection = db.collection("allRooms");
-
+    // get data----------
     app.get("/rooms", async (req, res) => {
-      const result = await roomCollection.find().toArray();
+      const result = await roomCollection.find().sort({ _id: -1 }).toArray();
       res.send(result);
     });
     app.get("/rooms/latest", async (req, res) => {
-      const result = await roomCollection.find().sort({ _id: -1 }).toArray();
+      const result = await roomCollection
+        .find()
+        .sort({ _id: -1 })
+        .limit(6)
+        .toArray();
 
       res.send(result);
     });
@@ -45,12 +49,47 @@ async function run() {
 
       res.json(result);
     });
+    app.get("/my-rooms/:email", async (req, res) => {
+      const email = req.params.email;
+
+      const result = await roomCollection
+        .find({ userEmail: email })
+        .sort({ _id: -1 })
+        .toArray();
+
+      res.send(result);
+    });
+    // post room data--
     app.post("/rooms", async (req, res) => {
       const room = req.body;
 
       const result = await roomCollection.insertOne(room);
 
       res.send(result);
+    });
+    //update room -----------------------
+    app.patch("/rooms/:id", async (req, res) => {
+      const { id } = req.params;
+      const updatedData = req.body;
+      // console.log(updatedData);
+
+      const result = await roomCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: updatedData },
+      );
+
+      res.json(result);
+    });
+    //delete room
+    app.delete("/rooms/:id", async (req, res) => {
+      const { id } = req.params;
+
+      // example: MongoDB collection
+      const result = await roomCollection.deleteOne({
+        _id: new ObjectId(id),
+      });
+
+      res.json(result);
     });
 
     // Send a ping to confirm a successful connection
