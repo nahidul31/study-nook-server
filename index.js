@@ -3,7 +3,13 @@ const cors = require("cors");
 require("dotenv").config();
 const app = express();
 
-app.use(cors());
+// app.use(cors());
+app.use(
+  cors({
+    origin: "*",
+    credentials: true,
+  }),
+);
 app.use(express.json());
 
 const port = process.env.PORT || 5000;
@@ -26,7 +32,8 @@ async function run() {
     // await client.connect();
     const db = client.db("StudyNookDb");
     const roomCollection = db.collection("allRooms");
-    // get data----------
+    const bookingCollection = db.collection("bookings");
+    // get data----------------------------------------------------------------------------------------
     app.get("/rooms", async (req, res) => {
       const result = await roomCollection.find().sort({ _id: -1 }).toArray();
       res.send(result);
@@ -59,7 +66,23 @@ async function run() {
 
       res.send(result);
     });
-    // searching --------------------
+    app.get("/bookings/:email", async (req, res) => {
+      const email = req.params.email;
+      const result = await bookingCollection
+        .find({ userEmail: email })
+        .sort({ _id: -1 })
+        .toArray();
+      res.json(result);
+    });
+
+    app.get("/bookings", async (req, res) => {
+      const result = await bookingCollections
+        .find()
+        .sort({ _id: -1 })
+        .toArray();
+      res.send(result);
+    });
+    // searching -----------------------------
     app.get("/api/rooms", async (req, res) => {
       try {
         const { search, amenities, minRate, maxRate, floor } = req.query;
@@ -96,7 +119,7 @@ async function run() {
       }
     });
 
-    // post room data--
+    // post  data-------------------------------------------------------------
     app.post("/rooms", async (req, res) => {
       const room = req.body;
 
@@ -104,7 +127,59 @@ async function run() {
 
       res.send(result);
     });
-    //update room -----------------------
+
+    app.post("/bookings", async (req, res) => {
+      const {
+        roomId,
+        date,
+        startTime,
+        endTime,
+        totalCost,
+        specialNote,
+        userEmail,
+        userName,
+        roomName,
+        image,
+      } = req.body;
+
+      const conflict = await bookingCollection.findOne({
+        roomId,
+        date,
+        $or: [{ startTime: { $lt: endTime }, endTime: { $gt: startTime } }],
+      });
+
+      if (conflict) {
+        return res
+          .status(409)
+          .json({ message: "This time slot is already booked!" });
+      }
+
+      const booking = {
+        roomId,
+        roomName,
+        date,
+        image,
+        startTime,
+        endTime,
+        totalCost,
+        specialNote,
+        userEmail,
+        userName,
+        status: "confirmed",
+        createdAt: new Date(),
+      };
+
+      const result = await bookingCollection.insertOne(booking);
+
+      // bookingCount increment------
+      await roomCollection.updateOne(
+        { _id: new ObjectId(roomId) },
+        { $inc: { bookingCount: 1 } },
+      );
+
+      res.status(201).json(result);
+    });
+    //update room -------------------------------------------------------
     app.patch("/rooms/:id", async (req, res) => {
       const { id } = req.params;
       const updatedData = req.body;
@@ -117,7 +192,39 @@ async function run() {
 
       res.json(result);
     });
-    //delete room--------------
+    // booking cencel----------------------------------------
+    // Cancel booking
+    app.patch("/bookings/:id/cancel", async (req, res) => {
+      const { id } = req.params;
+      const { userEmail } = req.body;
+
+      const booking = await bookingCollection.findOne({
+        _id: new ObjectId(id),
+      });
+
+      if (!booking) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+
+      // verify booking belongs to this user
+      if (booking.userEmail !== userEmail) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      await bookingCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: { status: "cancelled" } },
+      );
+
+      // optional — bookingCount কমাও
+      await roomCollection.updateOne(
+        { _id: new ObjectId(booking.roomId) },
+        { $inc: { bookingCount: -1 } },
+      );
+
+      res.json({ message: "Booking cancelled successfully" });
+    });
+    //delete room-----------------------------------------------------------------------
     app.delete("/rooms/:id", async (req, res) => {
       const { id } = req.params;
 
@@ -126,6 +233,13 @@ async function run() {
         _id: new ObjectId(id),
       });
 
+      res.json(result);
+    });
+    app.delete("/bookings/:id", async (req, res) => {
+      const { id } = req.params;
+      const result = await bookingCollection.deleteOne({
+        _id: new ObjectId(id),
+      });
       res.json(result);
     });
 
@@ -148,5 +262,11 @@ app.get("/", (req, res) => {
 // app.listen(port, () => {
 //   console.log(`Example app listening on port ${port}`);
 // });
+
+if (process.env.NODE_ENV !== "production") {
+  app.listen(port, () => {
+    console.log(`Example app listening on port ${port}`);
+  });
+}
 
 module.exports = app;
