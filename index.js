@@ -100,10 +100,7 @@ async function run() {
     });
 
     app.get("/bookings", verifyToken, async (req, res) => {
-      const result = await bookingCollections
-        .find()
-        .sort({ _id: -1 })
-        .toArray();
+      const result = await bookingCollection.find().sort({ _id: -1 }).toArray();
       res.send(result);
     });
     // searching -----------------------------
