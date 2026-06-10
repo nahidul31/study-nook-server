@@ -1,22 +1,20 @@
 const express = require("express");
 const cors = require("cors");
-require("dotenv").config();
-const app = express();
-
-// app.use(cors());
-app.use(
-  cors({
-    origin: "*",
-    credentials: true,
-  }),
-);
-app.use(express.json());
-
-const port = process.env.PORT || 5000;
 
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const { createRemoteJWKSet, jwtVerify } = require("jose-cjs");
+require("dotenv").config();
+const app = express();
+const port = process.env.PORT || 5000;
 const uri = process.env.DB_URI;
+app.use(cors());
+// app.use(
+//   cors({
+//     origin: "*",
+//     credentials: true,
+//   }),
+// );
+app.use(express.json());
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -53,7 +51,7 @@ const verifyToken = async (req, res, next) => {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
     const db = client.db("StudyNookDb");
     const roomCollection = db.collection("allRooms");
     const bookingCollection = db.collection("bookings");
@@ -280,14 +278,6 @@ app.get("/", (req, res) => {
   res.send("My studyNook server is running");
 });
 
-// app.listen(port, () => {
-//   console.log(`Example app listening on port ${port}`);
-// });
-
-if (process.env.NODE_ENV !== "production") {
-  app.listen(port, () => {
-    console.log(`Example app listening on port ${port}`);
-  });
-}
-
-module.exports = app;
+app.listen(port, () => {
+  console.log(`Example app listening on port ${port}`);
+});
