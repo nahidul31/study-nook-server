@@ -80,7 +80,7 @@ async function run() {
 
       res.json(result);
     });
-    app.get("/my-rooms/:email", async (req, res) => {
+    app.get("/my-rooms/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
 
       const result = await roomCollection
@@ -90,7 +90,7 @@ async function run() {
 
       res.send(result);
     });
-    app.get("/bookings/:email", async (req, res) => {
+    app.get("/bookings/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
       const result = await bookingCollection
         .find({ userEmail: email })
@@ -99,7 +99,7 @@ async function run() {
       res.json(result);
     });
 
-    app.get("/bookings", async (req, res) => {
+    app.get("/bookings", verifyToken, async (req, res) => {
       const result = await bookingCollections
         .find()
         .sort({ _id: -1 })
@@ -144,7 +144,7 @@ async function run() {
     });
 
     // post  data-------------------------------------------------------------
-    app.post("/rooms", async (req, res) => {
+    app.post("/rooms", verifyToken, async (req, res) => {
       const room = req.body;
 
       const result = await roomCollection.insertOne(room);
@@ -152,7 +152,7 @@ async function run() {
       res.send(result);
     });
 
-    app.post("/bookings", async (req, res) => {
+    app.post("/bookings", verifyToken, async (req, res) => {
       const {
         roomId,
         date,
@@ -204,7 +204,7 @@ async function run() {
       res.status(201).json(result);
     });
     //update room -------------------------------------------------------
-    app.patch("/rooms/:id", async (req, res) => {
+    app.patch("/rooms/:id", verifyToken, async (req, res) => {
       const { id } = req.params;
       const updatedData = req.body;
       // console.log(updatedData);
@@ -218,7 +218,7 @@ async function run() {
     });
     // booking cencel----------------------------------------
     // Cancel booking
-    app.patch("/bookings/:id/cancel", async (req, res) => {
+    app.patch("/bookings/:id/cancel", verifyToken, async (req, res) => {
       const { id } = req.params;
       const { userEmail } = req.body;
 
@@ -249,7 +249,7 @@ async function run() {
       res.json({ message: "Booking cancelled successfully" });
     });
     //delete room-----------------------------------------------------------------------
-    app.delete("/rooms/:id", async (req, res) => {
+    app.delete("/rooms/:id", verifyToken, async (req, res) => {
       const { id } = req.params;
 
       // example: MongoDB collection
@@ -259,7 +259,7 @@ async function run() {
 
       res.json(result);
     });
-    app.delete("/bookings/:id", async (req, res) => {
+    app.delete("/bookings/:id", verifyToken, async (req, res) => {
       const { id } = req.params;
       const result = await bookingCollection.deleteOne({
         _id: new ObjectId(id),
